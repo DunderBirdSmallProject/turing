@@ -393,11 +393,26 @@ TuringMachine *getTuringMachine(std::ifstream &in, std::string &error_msg) {
     // TODO: check whether all states is in state set
     return new TuringMachine(tape_cnt, blank_char, input_alphabet, tape_alphabet, state_sets, fin_states, init_state, trans);
 }
-std::string TuringMachine::run(std::string input, bool verbose, std::ostream &out) {
+
+std::string TuringMachine::run(std::string input, bool verbose, bool &success) {
     // judge the input is valid or not
-    for (auto c : input) {
+    for (auto i = 0u; i < input.size(); i++) {
+        char c = input[i];
         if (input_alphabet.count(c) == 0) {
-            // deal it
+            std::cerr << "Input: " << input << "\n";
+            std::cerr << "==================== ERR ====================\n";
+            std::cerr << "error: '" << c << "'"
+                      << " was not declared in the set of input symbols\n";
+            std::cerr << "Input: " << input << "\n";
+            for (int j = 0; j < 7; j++) {
+                std::cerr << ' ';
+            }
+            for (auto j = 0u; j < i; j++) {
+                std::cerr << ' ';
+            }
+            std::cerr << "^\n";
+            std::cerr << "==================== END ====================";
+            success = false;
             return "";
         }
     }
@@ -438,8 +453,6 @@ std::string TuringMachine::run(std::string input, bool verbose, std::ostream &ou
         cur_state = next_trans.state;
     }
 
-    clearTapes();
-
     const auto sz = tapes[0].size();
     if (sz == 0) {
         return "";
@@ -462,6 +475,7 @@ std::string TuringMachine::run(std::string input, bool verbose, std::ostream &ou
     for (auto i = left_bound; i <= right_bound; i++) {
         ans += tapes[0][i];
     }
+    clearTapes();
     return ans;
 }
 } // namespace Turing

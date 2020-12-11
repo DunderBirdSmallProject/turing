@@ -23,7 +23,14 @@ int main(int argc, char const *argv[]) {
                         std::cerr << "syntax error";
                     }
                 } else {
-                    machine->run(cli.getInput(), cli.isVerbose(), std::cout);
+                    bool success = true;
+                    std::string res = machine->run(cli.getInput(), cli.isVerbose(), success);
+                    delete machine;
+                    if (success) {
+                        std::cout << res;
+                    } else {
+                        return -1;
+                    }
                 }
                 file.close();
             } else {

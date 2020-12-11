@@ -14,7 +14,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	g++ $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 run: turing
-	./turing -v tests/sample1.tm 1001001
+	@./turing -v tests/palindrome_detector_2tapes.tm 001100
 
 TEST_DIR?=./tests
 TEST_SRC=$(wildcard $(TEST_DIR)/*.cpp)
@@ -30,10 +30,8 @@ test: all-test
 	./tests/test_get_turing_machine
 
 clean:
+	@rm $(TEST_EXE)
 	@rm $(OBJDIR)/*
-	@if [ ! -z $(TEST_EXE) ]; then\
-		rm $(TEST_EXE); \
-	fi
 	@if [ -f turing ]; then\
 		rm turing; \
 	fi

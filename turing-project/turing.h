@@ -61,30 +61,32 @@ class TuringMachine {
     std::vector<TapeType> tapes;
 
   private:
-    char getChar(int ith, int index) {
-        assert(ith < (int)tapes.size());
+    char getChar(size_t ith, size_t index) {
+        assert(ith < tapes.size());
         assert(index >= 0);
-        auto cur_tape = tapes[ith];
-        assert(index >= 0 && index < (int)cur_tape.size());
+        auto &cur_tape = tapes[ith];
+        assert(index >= 0 && index < cur_tape.size());
         return cur_tape[index];
     }
 
     void writeChar(size_t ith, size_t &index, char new_char, char dir) {
         assert(ith < tapes.size());
-        auto cur_tape = tapes[ith];
+        auto &cur_tape = tapes[ith];
         assert(index >= 0 && index < cur_tape.size());
         cur_tape[index] = new_char;
+        assert(dir == 'r' || dir == 'l' || dir == '*');
         if (dir == 'r') {
             index += 1;
+            if(index >= cur_tape.size()) {
+                cur_tape.push_back(blank_char);
+            }
         } else if (dir == 'l') {
-            index -= 1;
-        }
-        if (index < 0) {
-            cur_tape.push_front(blank_char);
-            index = 0;
-        }
-        if (index >= cur_tape.size()) {
-            cur_tape.push_back(blank_char);
+            if(index == 0) {
+                cur_tape.push_front(blank_char);
+            }
+            else {
+                index -= 1;
+            }
         }
     }
 
@@ -125,8 +127,7 @@ class TuringMachine {
         return blank_char;
     }
 
-    std::string run(std::string input, bool verbose, std::ostream &out);
-
+    std::string run(std::string input, bool verbose, bool &success);
 };
 
 TuringMachine *getTuringMachine(std::ifstream &in, std::string &error_info);
