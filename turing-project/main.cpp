@@ -17,8 +17,13 @@ int main(int argc, char const *argv[]) {
                 std::string error_info;
                 Turing::TuringMachine *machine = Turing::getTuringMachine(file, error_info);
                 if (machine == nullptr) {
-                    std::cerr << error_info << "\n";
+                    if (cli.isVerbose()) {
+                        std::cerr << error_info << "\n";
+                    } else {
+                        std::cerr << "syntax error";
+                    }
                 } else {
+                    machine->run(cli.getInput(), cli.isVerbose(), std::cout);
                 }
                 file.close();
             } else {

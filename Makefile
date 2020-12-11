@@ -1,7 +1,7 @@
 OBJDIR?=./out
 SRCDIR?=./turing-project
 CPPFLAGS?=-I./turing-project
-CXXFLAGS?=-g -Werror -Wall
+CXXFLAGS?=-g -Werror -Wall -std=c++11
 SRCS=$(wildcard $(SRCDIR)/*.cpp)
 OBJS=$(SRCS:./turing-project/%.cpp=$(OBJDIR)/%.o)
 
@@ -14,7 +14,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	g++ $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 run: turing
-	./turing -v programs/case1.tm 0000
+	./turing -v tests/sample1.tm 1001001
 
 TEST_DIR?=./tests
 TEST_SRC=$(wildcard $(TEST_DIR)/*.cpp)

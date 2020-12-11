@@ -393,4 +393,75 @@ TuringMachine *getTuringMachine(std::ifstream &in, std::string &error_msg) {
     // TODO: check whether all states is in state set
     return new TuringMachine(tape_cnt, blank_char, input_alphabet, tape_alphabet, state_sets, fin_states, init_state, trans);
 }
+std::string TuringMachine::run(std::string input, bool verbose, std::ostream &out) {
+    // judge the input is valid or not
+    for (auto c : input) {
+        if (input_alphabet.count(c) == 0) {
+            // deal it
+            return "";
+        }
+    }
+
+    clearTapes();
+
+    State cur_state = init_state;
+    std::vector<size_t> cur_index(n);
+    for (auto c : input) {
+        tapes[0].push_back(c);
+    }
+    cur_index[0] = 0;
+    if (tapes[0].size() == 0) {
+        tapes[0].push_back(blank_char);
+    }
+    for (int i = 1; i < n; i++) {
+        tapes[i].push_back(blank_char);
+        cur_index[i] = 0;
+    }
+
+    while (true) {
+        // finish state?
+        std::string cur_tape_content;
+        for (int i = 0; i < n; i++) {
+            cur_tape_content += getChar(i, cur_index[i]);
+        }
+        auto cur_full_state = FullState(cur_state, cur_tape_content);
+        if (trans.count(cur_full_state) == 0) {
+            // dead state
+            break;
+        }
+        const Transition &next_trans = trans[cur_full_state];
+        for (int i = 0; i < n; i++) {
+            char cur_dir = next_trans.dir[i];
+            char to_write = next_trans.new_tape_content[i];
+            writeChar(i, cur_index[i], to_write, cur_dir);
+        }
+        cur_state = next_trans.state;
+    }
+
+    clearTapes();
+
+    const auto sz = tapes[0].size();
+    if (sz == 0) {
+        return "";
+    }
+    auto left_bound = 0u;
+    auto right_bound = sz - 1;
+    while (left_bound < sz) {
+        if (tapes[0][left_bound] != blank_char) {
+            break;
+        }
+        left_bound++;
+    }
+    while (right_bound >= 0) {
+        if (tapes[0][right_bound] != blank_char) {
+            break;
+        }
+        right_bound--;
+    }
+    std::string ans = "";
+    for (auto i = left_bound; i <= right_bound; i++) {
+        ans += tapes[0][i];
+    }
+    return ans;
+}
 } // namespace Turing
