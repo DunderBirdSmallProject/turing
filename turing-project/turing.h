@@ -59,48 +59,25 @@ class TuringMachine {
     TransFunc trans;
 
     std::vector<TapeType> tapes;
+    std::vector<size_t> _bias;
 
   private:
-    char getChar(size_t ith, size_t index) {
-        assert(ith < tapes.size());
-        assert(index >= 0);
-        auto &cur_tape = tapes[ith];
-        assert(index >= 0 && index < cur_tape.size());
-        return cur_tape[index];
-    }
-
-    void writeChar(size_t ith, size_t &index, char new_char, char dir) {
-        assert(ith < tapes.size());
-        auto &cur_tape = tapes[ith];
-        assert(index >= 0 && index < cur_tape.size());
-        cur_tape[index] = new_char;
-        assert(dir == 'r' || dir == 'l' || dir == '*');
-        if (dir == 'r') {
-            index += 1;
-            if(index >= cur_tape.size()) {
-                cur_tape.push_back(blank_char);
-            }
-        } else if (dir == 'l') {
-            if(index == 0) {
-                cur_tape.push_front(blank_char);
-            }
-            else {
-                index -= 1;
-            }
-        }
-    }
+    char getChar(size_t ith, size_t index) const;
+    void writeChar(size_t ith, size_t &index, char new_char, char dir);
+    void outputState(int step, const std::string &state, const std::vector<size_t> &index) const;
 
     void clearTapes() {
         assert((int)tapes.size() == n);
         for (int i = 0; i < n; i++) {
             tapes[i].clear();
+            _bias[i] = 0;
         }
     }
 
   public:
     TuringMachine(int tapecnt, char blank_char, Alphabet input_alphabet, Alphabet tape_alphabet, StateSet state_sets, StateSet fin_states,
                   State q0, TransFunc trans) : n(tapecnt), blank_char(blank_char), input_alphabet(input_alphabet),
-                                               tape_alphabet(tape_alphabet), state_sets(state_sets), fin_states(fin_states), init_state(q0), trans(trans), tapes(n) {
+                                               tape_alphabet(tape_alphabet), state_sets(state_sets), fin_states(fin_states), init_state(q0), trans(trans), tapes(n), _bias(n) {
     }
     int getNumberOfTapes() const {
         return n;
@@ -127,7 +104,7 @@ class TuringMachine {
         return blank_char;
     }
 
-    std::string run(std::string input, bool verbose, bool &success);
+    void run(std::string input, bool verbose, bool &success);
 };
 
 TuringMachine *getTuringMachine(std::ifstream &in, std::string &error_info);

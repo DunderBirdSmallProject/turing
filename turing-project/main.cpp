@@ -14,6 +14,7 @@ int main(int argc, char const *argv[]) {
             std::ifstream file;
             file.open(cli.getInputFile());
             if (file.is_open()) {
+                bool success = true;
                 std::string error_info;
                 Turing::TuringMachine *machine = Turing::getTuringMachine(file, error_info);
                 if (machine == nullptr) {
@@ -23,16 +24,15 @@ int main(int argc, char const *argv[]) {
                         std::cerr << "syntax error";
                     }
                 } else {
-                    bool success = true;
-                    std::string res = machine->run(cli.getInput(), cli.isVerbose(), success);
+                    machine->run(cli.getInput(), cli.isVerbose(), success);
                     delete machine;
-                    if (success) {
-                        std::cout << res;
-                    } else {
-                        return -1;
-                    }
                 }
                 file.close();
+                if (success) {
+                    return 0;
+                } else {
+                    return -1;
+                }
             } else {
                 std::cerr << cli.getInputFile() + " not found\n";
             }

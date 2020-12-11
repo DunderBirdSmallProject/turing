@@ -1,7 +1,10 @@
 #include "turing.h"
+#include <algorithm>
 #include <cassert>
 #include <cctype>
 #include <fstream>
+#include <iomanip>
+#include <iostream>
 
 namespace Turing {
 inline bool isWhiteSpace(char c) {
@@ -394,31 +397,144 @@ TuringMachine *getTuringMachine(std::ifstream &in, std::string &error_msg) {
     return new TuringMachine(tape_cnt, blank_char, input_alphabet, tape_alphabet, state_sets, fin_states, init_state, trans);
 }
 
-std::string TuringMachine::run(std::string input, bool verbose, bool &success) {
+char TuringMachine::getChar(size_t ith, size_t index) const {
+    assert(ith < tapes.size());
+    assert(index >= 0);
+    auto &cur_tape = tapes[ith];
+    assert(index >= 0 && index < cur_tape.size());
+    return cur_tape[index];
+}
+
+void TuringMachine::writeChar(size_t ith, size_t &index, char new_char, char dir) {
+    assert(ith < tapes.size());
+    auto &cur_tape = tapes[ith];
+    assert(index >= 0 && index < cur_tape.size());
+    cur_tape[index] = new_char;
+    assert(dir == 'r' || dir == 'l' || dir == '*');
+    if (dir == 'r') {
+        index += 1;
+        if (index >= cur_tape.size()) {
+            cur_tape.push_back(blank_char);
+        }
+    } else if (dir == 'l') {
+        if (index == 0) {
+            cur_tape.push_front(blank_char);
+            _bias[ith] += 1;
+        } else {
+            index -= 1;
+        }
+    }
+}
+
+void TuringMachine::outputState(int step, const std::string &state, const std::vector<size_t> &index) const {
+    std::cout << std::left << std::setw(7) << "Step";
+    std::cout << ": " << step << '\n';
+
+    for (int i = 0; i < n; i++) {
+        std::vector<char> c_index, c_tape, c_head;
+        auto &cur_tape = tapes[i];
+        auto sz = (int)cur_tape.size();
+        assert(sz >= 1);
+        int left_bound = 0, right_bound = sz - 1;
+        while (left_bound < sz && cur_tape[left_bound] == blank_char) {
+            left_bound += 1;
+        }
+        while (right_bound >= 0 && cur_tape[right_bound] == blank_char) {
+            right_bound -= 1;
+        }
+        left_bound = std::min(left_bound, (int)index[i]);
+        right_bound = std::max(right_bound, (int)index[i]);
+
+        for (int j = left_bound; j <= right_bound; j++) {
+            int real_index = j - (int)_bias[i];
+            if (real_index < 0) {
+                real_index = -real_index;
+            }
+
+            int tmp = real_index;
+            std::vector<char> tmp_buff;
+            do {
+                int base = tmp % 10;
+                tmp /= 10;
+                tmp_buff.push_back('0' + base);
+            } while (tmp > 0);
+
+            for (auto it = tmp_buff.rbegin(); it != tmp_buff.rend(); ++it) {
+                c_index.push_back(*it);
+            }
+            int width = (int)tmp_buff.size();
+            c_tape.push_back(getChar(i, j));
+            if (j == (int)index[i]) {
+                c_head.push_back('^');
+            } else {
+                c_head.push_back(' ');
+            }
+
+            for (int k = 0; k < width - 1; k++) {
+                c_tape.push_back(' ');
+                c_head.push_back(' ');
+            }
+
+            if (j != right_bound) {
+                c_index.push_back(' ');
+                c_tape.push_back(' ');
+                c_head.push_back(' ');
+            }
+        }
+
+        std::cout << std::left << "Index" << std::setw(2) << i;
+        std::cout << ": ";
+        for (auto c : c_index) {
+            std::cout << c;
+        }
+        std::cout << '\n';
+        std::cout << std::left << "Tape" << std::setw(3) << i;
+        std::cout << ": ";
+        for (auto c : c_tape) {
+            std::cout << c;
+        }
+        std::cout << '\n';
+        std::cout << std::left << "Head" << std::setw(3) << i;
+        std::cout << ": ";
+        for (auto c : c_head) {
+            std::cout << c;
+        }
+        std::cout << '\n';
+    }
+
+    std::cout << std::left << "State  : ";
+    std::cout << state << '\n';
+    std::cout << "---------------------------------------------\n";
+}
+
+void TuringMachine::run(std::string input, bool verbose, bool &success) {
     // judge the input is valid or not
     for (auto i = 0u; i < input.size(); i++) {
         char c = input[i];
         if (input_alphabet.count(c) == 0) {
-            std::cerr << "Input: " << input << "\n";
-            std::cerr << "==================== ERR ====================\n";
-            std::cerr << "error: '" << c << "'"
-                      << " was not declared in the set of input symbols\n";
-            std::cerr << "Input: " << input << "\n";
-            for (int j = 0; j < 7; j++) {
-                std::cerr << ' ';
+            if (verbose) {
+                std::cerr << "Input: " << input << "\n";
+                std::cerr << "==================== ERR ====================\n";
+                std::cerr << "error: '" << c << "'"
+                          << " was not declared in the set of input symbols\n";
+                std::cerr << "Input: " << input << "\n";
+                for (int j = 0; j < 7; j++) {
+                    std::cerr << ' ';
+                }
+                for (auto j = 0u; j < i; j++) {
+                    std::cerr << ' ';
+                }
+                std::cerr << "^\n";
+                std::cerr << "==================== END ====================";
+            } else {
+                std::cerr << "illegal input";
             }
-            for (auto j = 0u; j < i; j++) {
-                std::cerr << ' ';
-            }
-            std::cerr << "^\n";
-            std::cerr << "==================== END ====================";
             success = false;
-            return "";
+            return;
         }
     }
 
     clearTapes();
-
     State cur_state = init_state;
     std::vector<size_t> cur_index(n);
     for (auto c : input) {
@@ -433,8 +549,12 @@ std::string TuringMachine::run(std::string input, bool verbose, bool &success) {
         cur_index[i] = 0;
     }
 
+    int step_cnt = 0;
     while (true) {
         // finish state?
+        if (verbose) {
+            outputState(step_cnt, cur_state, cur_index);
+        }
         std::string cur_tape_content;
         for (int i = 0; i < n; i++) {
             cur_tape_content += getChar(i, cur_index[i]);
@@ -451,11 +571,12 @@ std::string TuringMachine::run(std::string input, bool verbose, bool &success) {
             writeChar(i, cur_index[i], to_write, cur_dir);
         }
         cur_state = next_trans.state;
+        step_cnt += 1;
     }
 
     const auto sz = tapes[0].size();
     if (sz == 0) {
-        return "";
+        return;
     }
     auto left_bound = 0u;
     auto right_bound = sz - 1;
@@ -475,7 +596,13 @@ std::string TuringMachine::run(std::string input, bool verbose, bool &success) {
     for (auto i = left_bound; i <= right_bound; i++) {
         ans += tapes[0][i];
     }
+
+    if (verbose) {
+        std::cout << "Result: " << ans << '\n';
+        std::cout << "==================== END ====================";
+    } else {
+        std::cout << ans;
+    }
     clearTapes();
-    return ans;
 }
 } // namespace Turing
