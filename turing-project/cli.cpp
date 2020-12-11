@@ -8,6 +8,7 @@ inline bool equal(const char *str1, const char *str2) {
 }
 
 int Turing::Cli::parse(int argc, const char *argv[]) {
+    this->reset();
     if (argc <= 1) {
         return -1;
     }
