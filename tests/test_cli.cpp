@@ -101,4 +101,5 @@ int main() {
     test_cli_help();
     test_cli_verbose();
     test_cli_all();
+    return 0;
 }

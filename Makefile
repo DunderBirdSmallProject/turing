@@ -27,6 +27,7 @@ all-test: $(TEST_EXE)
 
 test: all-test
 	./tests/test_cli
+	./tests/test_get_turing_machine
 
 clean:
 	@rm $(OBJDIR)/*

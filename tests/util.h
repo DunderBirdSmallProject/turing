@@ -3,9 +3,15 @@
 
 #include <cstdio>
 
-#define EXPECT(cond)                                                                 \
-    if (!(cond)) {                                                                     \
+#define EXPECT(cond)                                                            \
+    if (!(cond)) {                                                              \
         fprintf(stderr, "%s: line %d: %s failed\n", __FILE__, __LINE__, #cond); \
+    }
+
+#define ASSERT(cond)                                                            \
+    if (!(cond)) {                                                              \
+        fprintf(stderr, "%s: line %d: %s failed\n", __FILE__, __LINE__, #cond); \
+        abort();                                                                \
     }
 
 #endif
