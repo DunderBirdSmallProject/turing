@@ -464,9 +464,9 @@ std::unique_ptr<TuringMachine> getTuringMachine(
     for (auto ch : expect_char) {
         if (!component_line.count(ch)) {
             if (ch == 'q') {
-                output_error(std::string("Missing #") + ch + "0\n", verbose);
+                output_error(std::string("Missing #") + ch, verbose);
             } else {
-                output_error(std::string("Missing #") + ch + "\n", verbose);
+                output_error(std::string("Missing #") + ch, verbose);
             }
             return nullptr;
         }
@@ -665,7 +665,7 @@ void TuringMachine::run(std::string input, bool verbose, bool &success) {
                 std::cerr << "^\n";
                 std::cerr << "==================== END ====================";
             } else {
-                std::cerr << "illegal input";
+                std::cerr << "illegal input\n";
             }
             success = false;
             return;
