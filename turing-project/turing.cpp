@@ -1,15 +1,15 @@
 #include "turing.h"
+
 #include <algorithm>
 #include <cassert>
 #include <cctype>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <memory>
 
 namespace Turing {
-inline bool isWhiteSpace(char c) {
-    return c == ' ' || c == '\r' || c == '\n';
-}
+inline bool isWhiteSpace(char c) { return c == ' ' || c == '\r' || c == '\n'; }
 
 inline bool isStateChar(char c) {
     return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') ||
@@ -21,9 +21,7 @@ inline bool isTapeChar(char c) {
                           c != '}' && c != '*');
 }
 
-inline bool isInputChar(char c) {
-    return isTapeChar(c) && c != '_';
-}
+inline bool isInputChar(char c) { return isTapeChar(c) && c != '_'; }
 
 inline void eatWhiteSpace(string::size_type &cur, std::string &str) {
     std::string::size_type len = str.length();
@@ -32,7 +30,8 @@ inline void eatWhiteSpace(string::size_type &cur, std::string &str) {
     }
 }
 
-inline int inputAssert(string::size_type &cur, std::string &str, const char *expect, string::size_type expect_len) {
+inline int inputAssert(string::size_type &cur, std::string &str,
+                       const char *expect, string::size_type expect_len) {
     std::string::size_type str_len = str.length();
     if (cur + expect_len > str_len) {
         return -1;
@@ -70,7 +69,8 @@ int readState(State &state, std::string &str, string::size_type &cur) {
     return 0;
 }
 
-int readStateSet(StateSet &state_sets, std::string &str, string::size_type &cur) {
+int readStateSet(StateSet &state_sets, std::string &str,
+                 string::size_type &cur) {
     const std::string::size_type len = str.length();
     eatWhiteSpace(cur, str);
     if (inputAssert(cur, str, "{", 1) < 0) {
@@ -102,7 +102,8 @@ int readStateSet(StateSet &state_sets, std::string &str, string::size_type &cur)
     return 0;
 }
 
-int readTapeAlphabet(Alphabet &alphabet, std::string &str, string::size_type &cur) {
+int readTapeAlphabet(Alphabet &alphabet, std::string &str,
+                     string::size_type &cur) {
     const std::string::size_type len = str.length();
     eatWhiteSpace(cur, str);
     if (inputAssert(cur, str, "{", 1) < 0) {
@@ -115,7 +116,7 @@ int readTapeAlphabet(Alphabet &alphabet, std::string &str, string::size_type &cu
             break;
         }
         if (!isTapeChar(str[cur])) {
-            return -1; // input alphabet must be valid
+            return -1;  // input alphabet must be valid
         }
         alphabet.insert(str[cur]);
         cur += 1;
@@ -130,7 +131,8 @@ int readTapeAlphabet(Alphabet &alphabet, std::string &str, string::size_type &cu
     return 0;
 }
 
-int readInputAlphabet(Alphabet &alphabet, std::string &str, string::size_type &cur) {
+int readInputAlphabet(Alphabet &alphabet, std::string &str,
+                      string::size_type &cur) {
     const std::string::size_type len = str.length();
     eatWhiteSpace(cur, str);
     if (inputAssert(cur, str, "{", 1) < 0) {
@@ -143,7 +145,7 @@ int readInputAlphabet(Alphabet &alphabet, std::string &str, string::size_type &c
             break;
         }
         if (!isInputChar(str[cur])) {
-            return -1; // input alphabet must be valid
+            return -1;  // input alphabet must be valid
         }
         alphabet.insert(str[cur]);
         cur += 1;
@@ -236,7 +238,8 @@ int readTrans(TransFunc &trans, std::string &str, string::size_type &cur) {
     return 0;
 }
 
-TuringMachine *getTuringMachine(std::ifstream &in, std::string &error_msg) {
+std::unique_ptr<TuringMachine> getTuringMachine(std::ifstream &in,
+                                                std::string &error_msg) {
     int tape_cnt = 0;
     Alphabet input_alphabet, tape_alphabet;
     StateSet state_sets;
@@ -252,7 +255,8 @@ TuringMachine *getTuringMachine(std::ifstream &in, std::string &error_msg) {
         eatWhiteSpace(cur, buff);
 
         /*
-         * parse_state: 0: nothing input, 1: '#' read, 2: end of line or comments
+         * parse_state: 0: nothing input, 1: '#' read, 2: end of line or
+         * comments
          */
         int parse_state = 0;
         while (cur < len && parse_state >= 0) {
@@ -272,111 +276,111 @@ TuringMachine *getTuringMachine(std::ifstream &in, std::string &error_msg) {
                 }
             } else if (parse_state == 1) {
                 switch (buff[cur]) {
-                case 'Q':
-                    cur += 1;
-                    eatWhiteSpace(cur, buff);
-                    if (inputAssert(cur, buff, "=", 1) < 0) {
+                    case 'Q':
+                        cur += 1;
+                        eatWhiteSpace(cur, buff);
+                        if (inputAssert(cur, buff, "=", 1) < 0) {
+                            parse_state = -1;
+                            break;
+                        }
+                        if (readStateSet(state_sets, buff, cur) < 0) {
+                            parse_state = -1;
+                            break;
+                        }
+                        parse_state = 2;
+                        break;
+                    case 'S':
+                        cur += 1;
+                        eatWhiteSpace(cur, buff);
+                        if (inputAssert(cur, buff, "=", 1) < 0) {
+                            parse_state = -1;
+                            break;
+                        }
+                        if (readInputAlphabet(input_alphabet, buff, cur) < 0) {
+                            parse_state = -1;
+                            break;
+                        }
+                        parse_state = 2;
+                        break;
+                    case 'G':
+                        cur += 1;
+                        eatWhiteSpace(cur, buff);
+                        if (inputAssert(cur, buff, "=", 1) < 0) {
+                            parse_state = -1;
+                            break;
+                        }
+                        if (readTapeAlphabet(tape_alphabet, buff, cur) < 0) {
+                            parse_state = -1;
+                            break;
+                        }
+                        parse_state = 2;
+                        break;
+                    case 'q':
+                        cur += 1;
+                        if (inputAssert(cur, buff, "0", 1) < 0) {
+                            parse_state = -1;
+                            break;
+                        }
+                        eatWhiteSpace(cur, buff);
+                        if (inputAssert(cur, buff, "=", 1) < 0) {
+                            parse_state = -1;
+                            break;
+                        }
+                        if (readState(init_state, buff, cur) < 0) {
+                            parse_state = -1;
+                            break;
+                        }
+                        parse_state = 2;
+                        break;
+                    case 'B':
+                        cur += 1;
+                        eatWhiteSpace(cur, buff);
+                        if (inputAssert(cur, buff, "=", 1) < 0) {
+                            parse_state = -1;
+                            break;
+                        }
+                        eatWhiteSpace(cur, buff);
+                        if (cur >= len) {
+                            parse_state = -1;
+                            break;
+                        }
+                        blank_char = buff[cur];
+                        if (!isTapeChar(blank_char)) {
+                            parse_state = -1;
+                            break;
+                        }
+                        cur++;
+                        parse_state = 2;
+                        break;
+                    case 'F':
+                        cur += 1;
+                        eatWhiteSpace(cur, buff);
+                        if (inputAssert(cur, buff, "=", 1) < 0) {
+                            parse_state = -1;
+                            break;
+                        }
+                        if (readStateSet(fin_states, buff, cur) < 0) {
+                            parse_state = -1;
+                            break;
+                        }
+                        parse_state = 2;
+                        break;
+                    case 'N':
+                        cur += 1;
+                        eatWhiteSpace(cur, buff);
+                        if (inputAssert(cur, buff, "=", 1) < 0) {
+                            parse_state = -1;
+                            break;
+                        }
+                        if (readInt(tape_cnt, buff, cur) < 0) {
+                            parse_state = -1;
+                            break;
+                        }
+                        parse_state = 2;
+                        break;
+                    default:
                         parse_state = -1;
                         break;
-                    }
-                    if (readStateSet(state_sets, buff, cur) < 0) {
-                        parse_state = -1;
-                        break;
-                    }
-                    parse_state = 2;
-                    break;
-                case 'S':
-                    cur += 1;
-                    eatWhiteSpace(cur, buff);
-                    if (inputAssert(cur, buff, "=", 1) < 0) {
-                        parse_state = -1;
-                        break;
-                    }
-                    if (readInputAlphabet(input_alphabet, buff, cur) < 0) {
-                        parse_state = -1;
-                        break;
-                    }
-                    parse_state = 2;
-                    break;
-                case 'G':
-                    cur += 1;
-                    eatWhiteSpace(cur, buff);
-                    if (inputAssert(cur, buff, "=", 1) < 0) {
-                        parse_state = -1;
-                        break;
-                    }
-                    if (readTapeAlphabet(tape_alphabet, buff, cur) < 0) {
-                        parse_state = -1;
-                        break;
-                    }
-                    parse_state = 2;
-                    break;
-                case 'q':
-                    cur += 1;
-                    if (inputAssert(cur, buff, "0", 1) < 0) {
-                        parse_state = -1;
-                        break;
-                    }
-                    eatWhiteSpace(cur, buff);
-                    if (inputAssert(cur, buff, "=", 1) < 0) {
-                        parse_state = -1;
-                        break;
-                    }
-                    if (readState(init_state, buff, cur) < 0) {
-                        parse_state = -1;
-                        break;
-                    }
-                    parse_state = 2;
-                    break;
-                case 'B':
-                    cur += 1;
-                    eatWhiteSpace(cur, buff);
-                    if (inputAssert(cur, buff, "=", 1) < 0) {
-                        parse_state = -1;
-                        break;
-                    }
-                    eatWhiteSpace(cur, buff);
-                    if (cur >= len) {
-                        parse_state = -1;
-                        break;
-                    }
-                    blank_char = buff[cur];
-                    if (!isTapeChar(blank_char)) {
-                        parse_state = -1;
-                        break;
-                    }
-                    cur++;
-                    parse_state = 2;
-                    break;
-                case 'F':
-                    cur += 1;
-                    eatWhiteSpace(cur, buff);
-                    if (inputAssert(cur, buff, "=", 1) < 0) {
-                        parse_state = -1;
-                        break;
-                    }
-                    if (readStateSet(fin_states, buff, cur) < 0) {
-                        parse_state = -1;
-                        break;
-                    }
-                    parse_state = 2;
-                    break;
-                case 'N':
-                    cur += 1;
-                    eatWhiteSpace(cur, buff);
-                    if (inputAssert(cur, buff, "=", 1) < 0) {
-                        parse_state = -1;
-                        break;
-                    }
-                    if (readInt(tape_cnt, buff, cur) < 0) {
-                        parse_state = -1;
-                        break;
-                    }
-                    parse_state = 2;
-                    break;
-                default:
-                    parse_state = -1;
-                    break;
                 }
             } else if (parse_state == 2) {
                 if (cur != buff.length() && buff[cur] != ';') {
@@ -392,9 +396,12 @@ TuringMachine *getTuringMachine(std::ifstream &in, std::string &error_msg) {
             return nullptr;
         }
     }
-    // TODO: check whether all information is inputed. (Q, S, G, q0, B, F, N, delta)
+    // TODO: check whether all information is inputed. (Q, S, G, q0, B, F, N,
+    // delta)
     // TODO: check whether all states is in state set
-    return new TuringMachine(tape_cnt, blank_char, input_alphabet, tape_alphabet, state_sets, fin_states, init_state, trans);
+    return std::unique_ptr<TuringMachine>(
+        new TuringMachine(tape_cnt, blank_char, input_alphabet, tape_alphabet,
+                          state_sets, fin_states, init_state, trans));
 }
 
 char TuringMachine::getChar(size_t ith, size_t index) const {
@@ -405,7 +412,8 @@ char TuringMachine::getChar(size_t ith, size_t index) const {
     return cur_tape[index];
 }
 
-void TuringMachine::writeChar(size_t ith, size_t &index, char new_char, char dir) {
+void TuringMachine::writeChar(size_t ith, size_t &index, char new_char,
+                              char dir) {
     assert(ith < tapes.size());
     auto &cur_tape = tapes[ith];
     assert(index >= 0 && index < cur_tape.size());
@@ -426,7 +434,8 @@ void TuringMachine::writeChar(size_t ith, size_t &index, char new_char, char dir
     }
 }
 
-void TuringMachine::outputState(int step, const std::string &state, const std::vector<size_t> &index) const {
+void TuringMachine::outputState(int step, const std::string &state,
+                                const std::vector<size_t> &index) const {
     std::cout << std::left << std::setw(7) << "Step";
     std::cout << ": " << step << '\n';
 
@@ -605,4 +614,4 @@ void TuringMachine::run(std::string input, bool verbose, bool &success) {
     }
     clearTapes();
 }
-} // namespace Turing
+}  // namespace Turing
