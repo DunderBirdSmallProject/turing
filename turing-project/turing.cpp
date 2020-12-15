@@ -276,7 +276,7 @@ std::unique_ptr<TuringMachine> getTuringMachine(
 
     const size_t line_cnt = lines.size();
     for (size_t line_index = 0; line_index < line_cnt; ++line_index) {
-        const std::string &line = lines[line_cnt];
+        const std::string line = lines[line_index];
         const string::size_type len = line.length();
         string::size_type cur = 0;
         eatWhiteSpace(cur, line);
@@ -521,11 +521,12 @@ std::unique_ptr<TuringMachine> getTuringMachine(
                 return nullptr;
             }
         }
-        if (real_trans.dir != "*" && real_trans.dir != "l" &&
-            real_trans.dir != "r") {
-            output_line_error("Direction must be in [l, r, *]", line_cnt,
-                              trans_str, verbose);
-            return nullptr;
+        for (auto c : real_trans.dir) {
+            if (c != '*' && c != 'l' && c != 'r') {
+                output_line_error("Direction must be in [l, r, *]", line_cnt,
+                                  trans_str, verbose);
+                return nullptr;
+            }
         }
     }
 
