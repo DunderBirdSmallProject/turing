@@ -538,26 +538,24 @@ std::unique_ptr<TuringMachine> getTuringMachine(
 char TuringMachine::getChar(size_t ith, size_t index) const {
     assert(ith < tapes.size());
     assert(index >= 0);
-    auto &cur_tape = tapes[ith];
-    assert(index >= 0 && index < cur_tape.size());
-    return cur_tape[index];
+    assert(index >= 0 && index < tapes[ith].size());
+    return tapes[ith][index];
 }
 
 void TuringMachine::writeChar(size_t ith, size_t &index, char new_char,
                               char dir) {
     assert(ith < tapes.size());
-    auto &cur_tape = tapes[ith];
-    assert(index >= 0 && index < cur_tape.size());
-    cur_tape[index] = new_char;
+    assert(index >= 0 && index < tapes[ith].size());
+    tapes[ith][index] = new_char;
     assert(dir == 'r' || dir == 'l' || dir == '*');
     if (dir == 'r') {
         index += 1;
-        if (index >= cur_tape.size()) {
-            cur_tape.push_back(blank_char);
+        if (index >= tapes[ith].size()) {
+            tapes[ith].push_back(blank_char);
         }
     } else if (dir == 'l') {
         if (index == 0) {
-            cur_tape.push_front(blank_char);
+            tapes[ith].push_front(blank_char);
             _bias[ith] += 1;
         } else {
             index -= 1;
@@ -572,7 +570,7 @@ void TuringMachine::outputState(int step, const std::string &state,
 
     for (int i = 0; i < n; i++) {
         std::vector<char> c_index, c_tape, c_head;
-        auto &cur_tape = tapes[i];
+        auto cur_tape = tapes[i];
         auto sz = (int)cur_tape.size();
         assert(sz >= 1);
         int left_bound = 0, right_bound = sz - 1;
