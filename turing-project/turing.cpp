@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <map>
 #include <memory>
 
 namespace Turing {
@@ -23,14 +24,14 @@ inline bool isTapeChar(char c) {
 
 inline bool isInputChar(char c) { return isTapeChar(c) && c != '_'; }
 
-inline void eatWhiteSpace(string::size_type &cur, std::string &str) {
+inline void eatWhiteSpace(string::size_type &cur, const std::string &str) {
     std::string::size_type len = str.length();
     while (cur < len && isWhiteSpace(str[cur])) {
         cur++;
     }
 }
 
-inline int inputAssert(string::size_type &cur, std::string &str,
+inline int inputAssert(string::size_type &cur, const std::string &str,
                        const char *expect, string::size_type expect_len) {
     std::string::size_type str_len = str.length();
     if (cur + expect_len > str_len) {
@@ -45,7 +46,7 @@ inline int inputAssert(string::size_type &cur, std::string &str,
     return 0;
 }
 
-int readState(State &state, std::string &str, string::size_type &cur) {
+int readState(State &state, const std::string &str, string::size_type &cur) {
     const std::string::size_type len = str.length();
     state = "";
     eatWhiteSpace(cur, str);
@@ -69,7 +70,7 @@ int readState(State &state, std::string &str, string::size_type &cur) {
     return 0;
 }
 
-int readStateSet(StateSet &state_sets, std::string &str,
+int readStateSet(StateSet &state_sets, const std::string &str,
                  string::size_type &cur) {
     const std::string::size_type len = str.length();
     eatWhiteSpace(cur, str);
@@ -102,7 +103,7 @@ int readStateSet(StateSet &state_sets, std::string &str,
     return 0;
 }
 
-int readTapeAlphabet(Alphabet &alphabet, std::string &str,
+int readTapeAlphabet(Alphabet &alphabet, const std::string &str,
                      string::size_type &cur) {
     const std::string::size_type len = str.length();
     eatWhiteSpace(cur, str);
@@ -131,7 +132,7 @@ int readTapeAlphabet(Alphabet &alphabet, std::string &str,
     return 0;
 }
 
-int readInputAlphabet(Alphabet &alphabet, std::string &str,
+int readInputAlphabet(Alphabet &alphabet, const std::string &str,
                       string::size_type &cur) {
     const std::string::size_type len = str.length();
     eatWhiteSpace(cur, str);
@@ -160,7 +161,7 @@ int readInputAlphabet(Alphabet &alphabet, std::string &str,
     return 0;
 }
 
-int readInt(int &target, std::string &str, string::size_type &cur) {
+int readInt(int &target, const std::string &str, string::size_type &cur) {
     const std::string::size_type len = str.length();
     eatWhiteSpace(cur, str);
     target = 0;
@@ -182,7 +183,7 @@ int readInt(int &target, std::string &str, string::size_type &cur) {
     return 0;
 }
 
-int readSymSet(string &target, std::string &str, string::size_type &cur) {
+int readSymSet(string &target, const std::string &str, string::size_type &cur) {
     const string::size_type len = str.length();
     eatWhiteSpace(cur, str);
     if (cur >= len) {
@@ -201,7 +202,8 @@ int readSymSet(string &target, std::string &str, string::size_type &cur) {
     return 0;
 }
 
-int readTrans(TransFunc &trans, std::string &str, string::size_type &cur) {
+int readTrans(Transition &trans, FullState &full_state, const std::string &str,
+              string::size_type &cur) {
     State old_state, new_state;
     string old_tape_content, new_tape_content;
     string dir;
@@ -228,27 +230,53 @@ int readTrans(TransFunc &trans, std::string &str, string::size_type &cur) {
         }
     }
 
-    FullState old_full_state = FullState(old_state, old_tape_content);
-    Transition transition = Transition(new_state, new_tape_content, dir);
-    if (trans.find(old_full_state) != trans.end()) {
-        return -1;
-    } else {
-        trans[old_full_state] = transition;
-    }
+    full_state = FullState(old_state, old_tape_content);
+    trans = Transition(new_state, new_tape_content, dir);
     return 0;
 }
 
+inline void output_error(const std::string &str, bool verbose) {
+    if (verbose) {
+        std::cerr << str << "\n";
+    } else {
+        std::cerr << "syntax error\n";
+    }
+}
+
+inline void output_line_error(const std::string &str, size_t line_cnt,
+                              const std::string &line, bool verbose) {
+    if (verbose) {
+        std::cerr << str << " (at line " << line_cnt << ": " << line << ")\n";
+    } else {
+        std::cerr << "syntax error\n";
+    }
+}
+
+/*
+ * tm file error:
+ * 1. syntax error.
+ * 2. missing components.
+ * 4. character not defined in alphabet(character in transition, blank_char).
+ * 5. states not defined in States(transition, init_state, fin_states).
+ * 6. collision component definition.
+ * 7. direction must be in ['r', 'l', '*']
+ */
 std::unique_ptr<TuringMachine> getTuringMachine(
-    std::vector<std::string> &lines) {
+    const std::vector<std::string> &lines, bool verbose) {
     int tape_cnt = 0;
     Alphabet input_alphabet, tape_alphabet;
     StateSet state_sets;
     StateSet fin_states;
     State init_state;
-    TransFunc trans;
+    TransFunc trans_func;
     char blank_char = '_';
 
-    for (auto &line : lines) {
+    std::map<char, size_t> component_line;
+    std::map<FullState, size_t> trans_line;
+
+    const size_t line_cnt = lines.size();
+    for (size_t line_index = 0; line_index < line_cnt; ++line_index) {
+        const std::string &line = lines[line_cnt];
         const string::size_type len = line.length();
         string::size_type cur = 0;
         eatWhiteSpace(cur, line);
@@ -267,24 +295,43 @@ std::unique_ptr<TuringMachine> getTuringMachine(
                     parse_state = 1;
                     cur++;
                 } else {
-                    if (readTrans(trans, line, cur) < 0) {
-                        parse_state = -1;
-                        break;
+                    // transition
+                    Transition new_trans;
+                    FullState full_state;
+                    if (readTrans(new_trans, full_state, line, cur) < 0) {
+                        output_line_error("Transition syntax", line_cnt, line,
+                                          verbose);
+                        return nullptr;
                     }
-                    parse_state = 2;
+                    if (trans_func.count(full_state) != 0) {
+                        output_line_error("Transition defined(this is not NTM)",
+                                          line_cnt, line, verbose);
+                        return nullptr;
+                    }
+                    trans_line[full_state] = line_index;
+                    trans_func[full_state] = new_trans;
                 }
             } else if (parse_state == 1) {
+                if (component_line.count(line[cur])) {
+                    output_line_error("Multiple definition", line_cnt, line,
+                                      verbose);
+                    return nullptr;
+                }
+                component_line[line[cur]] = line_index;
+
                 switch (line[cur]) {
                     case 'Q':
                         cur += 1;
                         eatWhiteSpace(cur, line);
                         if (inputAssert(cur, line, "=", 1) < 0) {
-                            parse_state = -1;
-                            break;
+                            output_line_error("Missing '='", line_cnt, line,
+                                              verbose);
+                            return nullptr;
                         }
                         if (readStateSet(state_sets, line, cur) < 0) {
-                            parse_state = -1;
-                            break;
+                            output_line_error("State set syntax error",
+                                              line_cnt, line, verbose);
+                            return nullptr;
                         }
                         parse_state = 2;
                         break;
@@ -292,12 +339,14 @@ std::unique_ptr<TuringMachine> getTuringMachine(
                         cur += 1;
                         eatWhiteSpace(cur, line);
                         if (inputAssert(cur, line, "=", 1) < 0) {
-                            parse_state = -1;
-                            break;
+                            output_line_error("Missing '='", line_cnt, line,
+                                              verbose);
+                            return nullptr;
                         }
                         if (readInputAlphabet(input_alphabet, line, cur) < 0) {
-                            parse_state = -1;
-                            break;
+                            output_line_error("Input alphabet syntax error",
+                                              line_cnt, line, verbose);
+                            return nullptr;
                         }
                         parse_state = 2;
                         break;
@@ -305,29 +354,34 @@ std::unique_ptr<TuringMachine> getTuringMachine(
                         cur += 1;
                         eatWhiteSpace(cur, line);
                         if (inputAssert(cur, line, "=", 1) < 0) {
-                            parse_state = -1;
-                            break;
+                            output_line_error("Missing '='", line_cnt, line,
+                                              verbose);
+                            return nullptr;
                         }
                         if (readTapeAlphabet(tape_alphabet, line, cur) < 0) {
-                            parse_state = -1;
-                            break;
+                            output_line_error("Tape alphabet syntax error",
+                                              line_cnt, line, verbose);
+                            return nullptr;
                         }
                         parse_state = 2;
                         break;
                     case 'q':
                         cur += 1;
                         if (inputAssert(cur, line, "0", 1) < 0) {
-                            parse_state = -1;
-                            break;
+                            output_line_error("Expect 0 after q", line_cnt,
+                                              line, verbose);
+                            return nullptr;
                         }
                         eatWhiteSpace(cur, line);
                         if (inputAssert(cur, line, "=", 1) < 0) {
-                            parse_state = -1;
-                            break;
+                            output_line_error("Missing '='", line_cnt, line,
+                                              verbose);
+                            return nullptr;
                         }
                         if (readState(init_state, line, cur) < 0) {
-                            parse_state = -1;
-                            break;
+                            output_line_error("State syntax error", line_cnt,
+                                              line, verbose);
+                            return nullptr;
                         }
                         parse_state = 2;
                         break;
@@ -335,18 +389,21 @@ std::unique_ptr<TuringMachine> getTuringMachine(
                         cur += 1;
                         eatWhiteSpace(cur, line);
                         if (inputAssert(cur, line, "=", 1) < 0) {
-                            parse_state = -1;
-                            break;
+                            output_line_error("Missing '='", line_cnt, line,
+                                              verbose);
+                            return nullptr;
                         }
                         eatWhiteSpace(cur, line);
                         if (cur >= len) {
-                            parse_state = -1;
-                            break;
+                            output_line_error("Unexpected line end", line_cnt,
+                                              line, verbose);
+                            return nullptr;
                         }
                         blank_char = line[cur];
                         if (!isTapeChar(blank_char)) {
-                            parse_state = -1;
-                            break;
+                            output_line_error("Invalid tape character",
+                                              line_cnt, line, verbose);
+                            return nullptr;
                         }
                         cur++;
                         parse_state = 2;
@@ -355,12 +412,14 @@ std::unique_ptr<TuringMachine> getTuringMachine(
                         cur += 1;
                         eatWhiteSpace(cur, line);
                         if (inputAssert(cur, line, "=", 1) < 0) {
-                            parse_state = -1;
-                            break;
+                            output_line_error("Missing '='", line_cnt, line,
+                                              verbose);
+                            return nullptr;
                         }
                         if (readStateSet(fin_states, line, cur) < 0) {
-                            parse_state = -1;
-                            break;
+                            output_line_error("State set syntax error",
+                                              line_cnt, line, verbose);
+                            return nullptr;
                         }
                         parse_state = 2;
                         break;
@@ -368,39 +427,111 @@ std::unique_ptr<TuringMachine> getTuringMachine(
                         cur += 1;
                         eatWhiteSpace(cur, line);
                         if (inputAssert(cur, line, "=", 1) < 0) {
-                            parse_state = -1;
-                            break;
+                            output_line_error("Missing '='", line_cnt, line,
+                                              verbose);
+                            return nullptr;
                         }
                         if (readInt(tape_cnt, line, cur) < 0) {
-                            parse_state = -1;
-                            break;
+                            output_line_error("Integer expected", line_cnt,
+                                              line, verbose);
+                            return nullptr;
                         }
                         parse_state = 2;
                         break;
                     default:
-                        parse_state = -1;
-                        break;
+                        output_line_error("Unexpected character", line_cnt,
+                                          line, verbose);
+                        return nullptr;
                 }
             } else if (parse_state == 2) {
                 if (cur != line.length() && line[cur] != ';') {
-                    parse_state = -1;
+                    output_line_error("Unexpected trialing character", line_cnt,
+                                      line, verbose);
+                    return nullptr;
                 }
                 break;
             }
         }
         if (parse_state == 1) {
-            parse_state = -1;
+            output_line_error("Unexpected line end", line_cnt, line, verbose);
+            return nullptr;
         }
-        if (parse_state < 0) {
+        assert(parse_state >= 0);
+    }
+
+    // check whether all information is inputed. (Q, S, G, q0, B, F, N, delta)
+    const std::vector<char> expect_char{'Q', 'S', 'G', 'q', 'B', 'F', 'N'};
+    for (auto ch : expect_char) {
+        if (!component_line.count(ch)) {
+            if (ch == 'q') {
+                output_error(std::string("Missing #") + ch + "0\n", verbose);
+            } else {
+                output_error(std::string("Missing #") + ch + "\n", verbose);
+            }
             return nullptr;
         }
     }
-    // TODO: check whether all information is inputed. (Q, S, G, q0, B, F, N,
-    // delta)
-    // TODO: check whether all states is in state set
+
+    // check whether all states is in state set
+    if (!tape_alphabet.count(blank_char)) {
+        output_line_error("Blank line not defined in tape alphabet",
+                          component_line['B'], lines[component_line['B']],
+                          verbose);
+        return nullptr;
+    }
+    if (!state_sets.count(init_state)) {
+        output_line_error(init_state + " not in states", component_line['q'],
+                          lines[component_line['q']], verbose);
+        return nullptr;
+    }
+    for (const auto &state : fin_states) {
+        if (!state_sets.count(state)) {
+            output_line_error(state + " not in states", component_line['F'],
+                              lines[component_line['F']], verbose);
+            return nullptr;
+        }
+    }
+    for (const auto &tr : trans_func) {
+        const auto &full_state = tr.first;
+        const auto &real_trans = tr.second;
+        const size_t trans_line_cnt = trans_line[full_state];
+        const std::string &trans_str = lines[trans_line_cnt];
+
+        if (!state_sets.count(full_state.state)) {
+            output_line_error(full_state.state + " not in states",
+                              trans_line_cnt, trans_str, verbose);
+            return nullptr;
+        }
+        if (!state_sets.count(real_trans.state)) {
+            output_line_error(real_trans.state + " not in states",
+                              trans_line_cnt, trans_str, verbose);
+            return nullptr;
+        }
+        for (auto c : full_state.tape_content) {
+            if (!tape_alphabet.count(c)) {
+                output_line_error("Not a tape character " + c, line_cnt,
+                                  trans_str, verbose);
+                return nullptr;
+            }
+        }
+        for (auto c : real_trans.new_tape_content) {
+            if (!tape_alphabet.count(c)) {
+                output_line_error("Not a tape character " + c, line_cnt,
+                                  trans_str, verbose);
+                return nullptr;
+            }
+        }
+        if (real_trans.dir != "*" && real_trans.dir != "l" &&
+            real_trans.dir != "r") {
+            output_line_error("Direction must be in [l, r, *]", line_cnt,
+                              trans_str, verbose);
+            return nullptr;
+        }
+    }
+
     return std::unique_ptr<TuringMachine>(
         new TuringMachine(tape_cnt, blank_char, input_alphabet, tape_alphabet,
-                          state_sets, fin_states, init_state, trans));
+                          state_sets, fin_states, init_state, trans_func));
 }
 
 char TuringMachine::getChar(size_t ith, size_t index) const {

@@ -27,13 +27,9 @@ int main(int argc, char const *argv[]) {
                     }
                 }
 
-                auto machine = Turing::getTuringMachine(lines);
+                auto machine = Turing::getTuringMachine(lines, cli.isVerbose());
                 if (machine == nullptr) {
-                    if (cli.isVerbose()) {
-                        std::cerr << error_info << "\n";
-                    } else {
-                        std::cerr << "syntax error";
-                    }
+                    return -1;
                 } else {
                     machine->run(cli.getInput(), cli.isVerbose(), success);
                 }

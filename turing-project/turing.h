@@ -37,6 +37,7 @@ struct FullState {
     }
     FullState(const State &state, const string &tape_content)
         : state(state), tape_content(tape_content) {}
+    FullState() {}
 };
 
 struct Transition {
@@ -104,7 +105,8 @@ class TuringMachine {
     void run(std::string input, bool verbose, bool &success);
 };
 
-std::unique_ptr<TuringMachine> getTuringMachine(std::vector<std::string> &lines);
+std::unique_ptr<TuringMachine> getTuringMachine(
+    const std::vector<std::string> &lines, bool verbose);
 
 }  // namespace Turing
 

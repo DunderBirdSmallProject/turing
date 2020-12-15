@@ -24,7 +24,7 @@ void test_sample1() {
     while (std::getline(file, buff)) {
         lines.push_back(buff);
     }
-    auto machine = getTuringMachine(lines);
+    auto machine = getTuringMachine(lines, false);
     ASSERT(machine != nullptr);
 
     Alphabet input = machine->getInputAlphabet();
