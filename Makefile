@@ -1,4 +1,5 @@
-OBJDIR?=./out
+OBJDIR?=./builds/out
+TESTOBJDIR?=./builds/tests
 SRCDIR?=./turing-project
 CPPFLAGS?=-I./turing-project
 CXXFLAGS?=-g -Werror -Wall -std=c++11
@@ -18,19 +19,22 @@ run: turing
 
 TEST_DIR?=./tests
 TEST_SRC=$(wildcard $(TEST_DIR)/*.cpp)
-TEST_EXE=$(TEST_SRC:./tests/%.cpp=$(TEST_DIR)/%)
+test_cases:=$(TEST_SRC:$(TEST_DIR)/%.cpp=%)
+test_objs:=$(test_cases:%=$(TESTOBJDIR)/%)
 
-$(TEST_DIR)/%: $(TEST_DIR)/%.cpp $(OBJS)
-	g++ -I$(SRCDIR) -g -o $@ $< ./out/cli.o ./out/turing.o
+INCOBJS=$(filter-out %main.o,$(OBJS))
 
-all-test: $(TEST_EXE)
+$(test_objs): $(TEST_SRC) $(INCOBJS)
+	g++ -I$(SRCDIR) -g -o $@ $< $(INCOBJS)
+
+all-test: $(test_objs)
 
 test: all-test
-	./tests/test_cli
-	./tests/test_get_turing_machine
+	$(TESTOBJDIR)/test_cli
+	$(TESTOBJDIR)/test_get_turing_machine
 
 clean:
-	@rm $(TEST_EXE)
+	@rm $(TESTOBJDIR)/*
 	@rm $(OBJDIR)/*
 	@if [ -f turing ]; then\
 		rm turing; \
