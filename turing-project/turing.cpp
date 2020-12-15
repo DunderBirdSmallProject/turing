@@ -739,9 +739,9 @@ void TuringMachine::run(std::string input, bool verbose, bool &success) {
 
     if (verbose) {
         std::cout << "Result: " << ans << '\n';
-        std::cout << "==================== END ====================";
+        std::cout << "==================== END ====================\n";
     } else {
-        std::cout << ans;
+        std::cout << ans << "\n";
     }
     clearTapes();
 }
