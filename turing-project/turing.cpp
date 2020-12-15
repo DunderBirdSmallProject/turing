@@ -238,8 +238,8 @@ int readTrans(TransFunc &trans, std::string &str, string::size_type &cur) {
     return 0;
 }
 
-std::unique_ptr<TuringMachine> getTuringMachine(std::ifstream &in,
-                                                std::string &error_msg) {
+std::unique_ptr<TuringMachine> getTuringMachine(
+    std::vector<std::string> &lines) {
     int tape_cnt = 0;
     Alphabet input_alphabet, tape_alphabet;
     StateSet state_sets;
@@ -248,11 +248,10 @@ std::unique_ptr<TuringMachine> getTuringMachine(std::ifstream &in,
     TransFunc trans;
     char blank_char = '_';
 
-    std::string buff;
-    while (std::getline(in, buff)) {
-        const string::size_type len = buff.length();
+    for (auto &line : lines) {
+        const string::size_type len = line.length();
         string::size_type cur = 0;
-        eatWhiteSpace(cur, buff);
+        eatWhiteSpace(cur, line);
 
         /*
          * parse_state: 0: nothing input, 1: '#' read, 2: end of line or
@@ -260,30 +259,30 @@ std::unique_ptr<TuringMachine> getTuringMachine(std::ifstream &in,
          */
         int parse_state = 0;
         while (cur < len && parse_state >= 0) {
-            eatWhiteSpace(cur, buff);
+            eatWhiteSpace(cur, line);
             if (parse_state == 0) {
-                if (buff[cur] == ';') {
+                if (line[cur] == ';') {
                     break;
-                } else if (buff[cur] == '#') {
+                } else if (line[cur] == '#') {
                     parse_state = 1;
                     cur++;
                 } else {
-                    if (readTrans(trans, buff, cur) < 0) {
+                    if (readTrans(trans, line, cur) < 0) {
                         parse_state = -1;
                         break;
                     }
                     parse_state = 2;
                 }
             } else if (parse_state == 1) {
-                switch (buff[cur]) {
+                switch (line[cur]) {
                     case 'Q':
                         cur += 1;
-                        eatWhiteSpace(cur, buff);
-                        if (inputAssert(cur, buff, "=", 1) < 0) {
+                        eatWhiteSpace(cur, line);
+                        if (inputAssert(cur, line, "=", 1) < 0) {
                             parse_state = -1;
                             break;
                         }
-                        if (readStateSet(state_sets, buff, cur) < 0) {
+                        if (readStateSet(state_sets, line, cur) < 0) {
                             parse_state = -1;
                             break;
                         }
@@ -291,12 +290,12 @@ std::unique_ptr<TuringMachine> getTuringMachine(std::ifstream &in,
                         break;
                     case 'S':
                         cur += 1;
-                        eatWhiteSpace(cur, buff);
-                        if (inputAssert(cur, buff, "=", 1) < 0) {
+                        eatWhiteSpace(cur, line);
+                        if (inputAssert(cur, line, "=", 1) < 0) {
                             parse_state = -1;
                             break;
                         }
-                        if (readInputAlphabet(input_alphabet, buff, cur) < 0) {
+                        if (readInputAlphabet(input_alphabet, line, cur) < 0) {
                             parse_state = -1;
                             break;
                         }
@@ -304,12 +303,12 @@ std::unique_ptr<TuringMachine> getTuringMachine(std::ifstream &in,
                         break;
                     case 'G':
                         cur += 1;
-                        eatWhiteSpace(cur, buff);
-                        if (inputAssert(cur, buff, "=", 1) < 0) {
+                        eatWhiteSpace(cur, line);
+                        if (inputAssert(cur, line, "=", 1) < 0) {
                             parse_state = -1;
                             break;
                         }
-                        if (readTapeAlphabet(tape_alphabet, buff, cur) < 0) {
+                        if (readTapeAlphabet(tape_alphabet, line, cur) < 0) {
                             parse_state = -1;
                             break;
                         }
@@ -317,16 +316,16 @@ std::unique_ptr<TuringMachine> getTuringMachine(std::ifstream &in,
                         break;
                     case 'q':
                         cur += 1;
-                        if (inputAssert(cur, buff, "0", 1) < 0) {
+                        if (inputAssert(cur, line, "0", 1) < 0) {
                             parse_state = -1;
                             break;
                         }
-                        eatWhiteSpace(cur, buff);
-                        if (inputAssert(cur, buff, "=", 1) < 0) {
+                        eatWhiteSpace(cur, line);
+                        if (inputAssert(cur, line, "=", 1) < 0) {
                             parse_state = -1;
                             break;
                         }
-                        if (readState(init_state, buff, cur) < 0) {
+                        if (readState(init_state, line, cur) < 0) {
                             parse_state = -1;
                             break;
                         }
@@ -334,17 +333,17 @@ std::unique_ptr<TuringMachine> getTuringMachine(std::ifstream &in,
                         break;
                     case 'B':
                         cur += 1;
-                        eatWhiteSpace(cur, buff);
-                        if (inputAssert(cur, buff, "=", 1) < 0) {
+                        eatWhiteSpace(cur, line);
+                        if (inputAssert(cur, line, "=", 1) < 0) {
                             parse_state = -1;
                             break;
                         }
-                        eatWhiteSpace(cur, buff);
+                        eatWhiteSpace(cur, line);
                         if (cur >= len) {
                             parse_state = -1;
                             break;
                         }
-                        blank_char = buff[cur];
+                        blank_char = line[cur];
                         if (!isTapeChar(blank_char)) {
                             parse_state = -1;
                             break;
@@ -354,12 +353,12 @@ std::unique_ptr<TuringMachine> getTuringMachine(std::ifstream &in,
                         break;
                     case 'F':
                         cur += 1;
-                        eatWhiteSpace(cur, buff);
-                        if (inputAssert(cur, buff, "=", 1) < 0) {
+                        eatWhiteSpace(cur, line);
+                        if (inputAssert(cur, line, "=", 1) < 0) {
                             parse_state = -1;
                             break;
                         }
-                        if (readStateSet(fin_states, buff, cur) < 0) {
+                        if (readStateSet(fin_states, line, cur) < 0) {
                             parse_state = -1;
                             break;
                         }
@@ -367,12 +366,12 @@ std::unique_ptr<TuringMachine> getTuringMachine(std::ifstream &in,
                         break;
                     case 'N':
                         cur += 1;
-                        eatWhiteSpace(cur, buff);
-                        if (inputAssert(cur, buff, "=", 1) < 0) {
+                        eatWhiteSpace(cur, line);
+                        if (inputAssert(cur, line, "=", 1) < 0) {
                             parse_state = -1;
                             break;
                         }
-                        if (readInt(tape_cnt, buff, cur) < 0) {
+                        if (readInt(tape_cnt, line, cur) < 0) {
                             parse_state = -1;
                             break;
                         }
@@ -383,7 +382,7 @@ std::unique_ptr<TuringMachine> getTuringMachine(std::ifstream &in,
                         break;
                 }
             } else if (parse_state == 2) {
-                if (cur != buff.length() && buff[cur] != ';') {
+                if (cur != line.length() && line[cur] != ';') {
                     parse_state = -1;
                 }
                 break;

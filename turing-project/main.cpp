@@ -18,7 +18,16 @@ int main(int argc, char const *argv[]) {
             if (file.is_open()) {
                 bool success = true;
                 std::string error_info;
-                auto machine = Turing::getTuringMachine(file, error_info);
+                std::vector<std::string> lines;
+                std::string buff;
+
+                while (std::getline(file, buff)) {
+                    if (buff.size() > 0) {
+                        lines.push_back(buff);
+                    }
+                }
+
+                auto machine = Turing::getTuringMachine(lines);
                 if (machine == nullptr) {
                     if (cli.isVerbose()) {
                         std::cerr << error_info << "\n";
@@ -35,7 +44,12 @@ int main(int argc, char const *argv[]) {
                     return -1;
                 }
             } else {
-                std::cerr << cli.getInputFile() + " not found\n";
+                if (cli.isVerbose()) {
+                    std::cerr << cli.getInputFile() + " not found\n";
+                } else {
+                    std::cerr << "illegal input\n";
+                }
+                return -1;
             }
         }
     }

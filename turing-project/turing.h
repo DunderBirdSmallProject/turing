@@ -104,8 +104,7 @@ class TuringMachine {
     void run(std::string input, bool verbose, bool &success);
 };
 
-std::unique_ptr<TuringMachine> getTuringMachine(std::ifstream &in,
-                                                std::string &error_info);
+std::unique_ptr<TuringMachine> getTuringMachine(std::vector<std::string> &lines);
 
 }  // namespace Turing
 

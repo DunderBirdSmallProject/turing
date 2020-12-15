@@ -1,8 +1,9 @@
-#include "turing.h"
-#include "util.h"
 #include <fstream>
 #include <iostream>
 #include <set>
+
+#include "turing.h"
+#include "util.h"
 
 using namespace Turing;
 
@@ -16,7 +17,14 @@ std::ifstream openfile(const std::string filename) {
 void test_sample1() {
     std::string error_info;
     std::ifstream file = openfile("tests/sample1.tm");
-    TuringMachine *machine = getTuringMachine(file, error_info);
+    ASSERT(file.is_open());
+    std::string buff;
+    std::vector<std::string> lines;
+
+    while (std::getline(file, buff)) {
+        lines.push_back(buff);
+    }
+    auto machine = getTuringMachine(lines);
     ASSERT(machine != nullptr);
 
     Alphabet input = machine->getInputAlphabet();
@@ -29,7 +37,8 @@ void test_sample1() {
     State init_state = machine->getInitState();
 
     EXPECT((input == std::set<char>{'0', '1'}));
-    EXPECT((tape == std::set<char>{'0', '1', '_', 't', 'r', 'u', 'e', 'f', 'a', 'l', 's'}));
+    EXPECT((tape == std::set<char>{'0', '1', '_', 't', 'r', 'u', 'e', 'f', 'a',
+                                   'l', 's'}));
     EXPECT(init_state == "0");
     EXPECT(blank_char == '_');
     EXPECT((fin_state == std::set<std::string>{"halt_accept"}));
@@ -42,8 +51,6 @@ void test_sample1() {
     EXPECT(transition.dir == "rl");
     EXPECT(transition.new_tape_content == "__");
     EXPECT(transition.state == "reject");
-
-    delete machine;
 }
 
 int main() {
