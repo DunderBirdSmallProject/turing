@@ -15,7 +15,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	g++ $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 run: turing
-	@./turing tests/palindrome_detector_2tapes.tm 11
+	@./turing -v programs/case1.tm aabbaabb
 
 TEST_DIR?=./tests
 TEST_SRC=$(wildcard $(TEST_DIR)/*.cpp)
