@@ -32,6 +32,8 @@ all-test: $(test_objs)
 test: all-test
 	$(TESTOBJDIR)/test_cli
 	$(TESTOBJDIR)/test_get_turing_machine
+	$(TESTOBJDIR)/test_case1
+	$(TESTOBJDIR)/test_case2
 
 clean:
 	@rm $(TESTOBJDIR)/*

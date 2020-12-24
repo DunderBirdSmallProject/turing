@@ -22,9 +22,7 @@ int main(int argc, char const *argv[]) {
                 std::string buff;
 
                 while (std::getline(file, buff)) {
-                    if (buff.size() > 0) {
-                        lines.push_back(buff);
-                    }
+                    lines.push_back(buff);
                 }
 
                 auto machine = Turing::getTuringMachine(lines, cli.isVerbose());
@@ -33,7 +31,9 @@ int main(int argc, char const *argv[]) {
                 } else {
                     machine->run(cli.getInput(), cli.isVerbose(), success);
                 }
+
                 file.close();
+
                 if (success) {
                     return 0;
                 } else {

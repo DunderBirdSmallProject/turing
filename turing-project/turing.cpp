@@ -243,10 +243,15 @@ inline void output_error(const std::string &str, bool verbose) {
     }
 }
 
-inline void output_line_error(const std::string &str, size_t line_cnt,
+/**
+ * output an error associated with a line.
+ * line_index is start from 0, while line number outputed is counted from 1.
+ */
+inline void output_line_error(const std::string &str, size_t line_index,
                               const std::string &line, bool verbose) {
     if (verbose) {
-        std::cerr << str << " (at line " << line_cnt << ": " << line << ")\n";
+        std::cerr << str << " (at line " << line_index + 1 << ": " << line
+                  << ")\n";
     } else {
         std::cerr << "syntax error\n";
     }
@@ -299,13 +304,13 @@ std::unique_ptr<TuringMachine> getTuringMachine(
                     Transition new_trans;
                     FullState full_state;
                     if (readTrans(new_trans, full_state, line, cur) < 0) {
-                        output_line_error("Transition syntax", line_cnt, line,
+                        output_line_error("Transition syntax", line_index, line,
                                           verbose);
                         return nullptr;
                     }
                     if (trans_func.count(full_state) != 0) {
                         output_line_error("Transition defined(this is not NTM)",
-                                          line_cnt, line, verbose);
+                                          line_index, line, verbose);
                         return nullptr;
                     }
                     trans_line[full_state] = line_index;
@@ -313,7 +318,7 @@ std::unique_ptr<TuringMachine> getTuringMachine(
                 }
             } else if (parse_state == 1) {
                 if (component_line.count(line[cur])) {
-                    output_line_error("Multiple definition", line_cnt, line,
+                    output_line_error("Multiple definition", line_index, line,
                                       verbose);
                     return nullptr;
                 }
@@ -324,13 +329,13 @@ std::unique_ptr<TuringMachine> getTuringMachine(
                         cur += 1;
                         eatWhiteSpace(cur, line);
                         if (inputAssert(cur, line, "=", 1) < 0) {
-                            output_line_error("Missing '='", line_cnt, line,
+                            output_line_error("Missing '='", line_index, line,
                                               verbose);
                             return nullptr;
                         }
                         if (readStateSet(state_sets, line, cur) < 0) {
                             output_line_error("State set syntax error",
-                                              line_cnt, line, verbose);
+                                              line_index, line, verbose);
                             return nullptr;
                         }
                         parse_state = 2;
@@ -339,13 +344,13 @@ std::unique_ptr<TuringMachine> getTuringMachine(
                         cur += 1;
                         eatWhiteSpace(cur, line);
                         if (inputAssert(cur, line, "=", 1) < 0) {
-                            output_line_error("Missing '='", line_cnt, line,
+                            output_line_error("Missing '='", line_index, line,
                                               verbose);
                             return nullptr;
                         }
                         if (readInputAlphabet(input_alphabet, line, cur) < 0) {
                             output_line_error("Input alphabet syntax error",
-                                              line_cnt, line, verbose);
+                                              line_index, line, verbose);
                             return nullptr;
                         }
                         parse_state = 2;
@@ -354,13 +359,13 @@ std::unique_ptr<TuringMachine> getTuringMachine(
                         cur += 1;
                         eatWhiteSpace(cur, line);
                         if (inputAssert(cur, line, "=", 1) < 0) {
-                            output_line_error("Missing '='", line_cnt, line,
+                            output_line_error("Missing '='", line_index, line,
                                               verbose);
                             return nullptr;
                         }
                         if (readTapeAlphabet(tape_alphabet, line, cur) < 0) {
                             output_line_error("Tape alphabet syntax error",
-                                              line_cnt, line, verbose);
+                                              line_index, line, verbose);
                             return nullptr;
                         }
                         parse_state = 2;
@@ -368,18 +373,18 @@ std::unique_ptr<TuringMachine> getTuringMachine(
                     case 'q':
                         cur += 1;
                         if (inputAssert(cur, line, "0", 1) < 0) {
-                            output_line_error("Expect 0 after q", line_cnt,
+                            output_line_error("Expect 0 after q", line_index,
                                               line, verbose);
                             return nullptr;
                         }
                         eatWhiteSpace(cur, line);
                         if (inputAssert(cur, line, "=", 1) < 0) {
-                            output_line_error("Missing '='", line_cnt, line,
+                            output_line_error("Missing '='", line_index, line,
                                               verbose);
                             return nullptr;
                         }
                         if (readState(init_state, line, cur) < 0) {
-                            output_line_error("State syntax error", line_cnt,
+                            output_line_error("State syntax error", line_index,
                                               line, verbose);
                             return nullptr;
                         }
@@ -389,20 +394,20 @@ std::unique_ptr<TuringMachine> getTuringMachine(
                         cur += 1;
                         eatWhiteSpace(cur, line);
                         if (inputAssert(cur, line, "=", 1) < 0) {
-                            output_line_error("Missing '='", line_cnt, line,
+                            output_line_error("Missing '='", line_index, line,
                                               verbose);
                             return nullptr;
                         }
                         eatWhiteSpace(cur, line);
                         if (cur >= len) {
-                            output_line_error("Unexpected line end", line_cnt,
+                            output_line_error("Unexpected line end", line_index,
                                               line, verbose);
                             return nullptr;
                         }
                         blank_char = line[cur];
                         if (!isTapeChar(blank_char)) {
                             output_line_error("Invalid tape character",
-                                              line_cnt, line, verbose);
+                                              line_index, line, verbose);
                             return nullptr;
                         }
                         cur++;
@@ -412,13 +417,13 @@ std::unique_ptr<TuringMachine> getTuringMachine(
                         cur += 1;
                         eatWhiteSpace(cur, line);
                         if (inputAssert(cur, line, "=", 1) < 0) {
-                            output_line_error("Missing '='", line_cnt, line,
+                            output_line_error("Missing '='", line_index, line,
                                               verbose);
                             return nullptr;
                         }
                         if (readStateSet(fin_states, line, cur) < 0) {
                             output_line_error("State set syntax error",
-                                              line_cnt, line, verbose);
+                                              line_index, line, verbose);
                             return nullptr;
                         }
                         parse_state = 2;
@@ -427,33 +432,33 @@ std::unique_ptr<TuringMachine> getTuringMachine(
                         cur += 1;
                         eatWhiteSpace(cur, line);
                         if (inputAssert(cur, line, "=", 1) < 0) {
-                            output_line_error("Missing '='", line_cnt, line,
+                            output_line_error("Missing '='", line_index, line,
                                               verbose);
                             return nullptr;
                         }
                         if (readInt(tape_cnt, line, cur) < 0) {
-                            output_line_error("Integer expected", line_cnt,
+                            output_line_error("Integer expected", line_index,
                                               line, verbose);
                             return nullptr;
                         }
                         parse_state = 2;
                         break;
                     default:
-                        output_line_error("Unexpected character", line_cnt,
+                        output_line_error("Unexpected character", line_index,
                                           line, verbose);
                         return nullptr;
                 }
             } else if (parse_state == 2) {
                 if (cur != line.length() && line[cur] != ';') {
-                    output_line_error("Unexpected trialing character", line_cnt,
-                                      line, verbose);
+                    output_line_error("Unexpected trialing character",
+                                      line_index, line, verbose);
                     return nullptr;
                 }
                 break;
             }
         }
         if (parse_state == 1) {
-            output_line_error("Unexpected line end", line_cnt, line, verbose);
+            output_line_error("Unexpected line end", line_index, line, verbose);
             return nullptr;
         }
         assert(parse_state >= 0);
@@ -509,22 +514,22 @@ std::unique_ptr<TuringMachine> getTuringMachine(
         }
         for (auto c : full_state.tape_content) {
             if (!tape_alphabet.count(c)) {
-                output_line_error("Not a tape character " + c, line_cnt,
-                                  trans_str, verbose);
+                output_line_error(std::string("Not a tape character ") + c,
+                                  trans_line_cnt, trans_str, verbose);
                 return nullptr;
             }
         }
         for (auto c : real_trans.new_tape_content) {
             if (!tape_alphabet.count(c)) {
-                output_line_error("Not a tape character " + c, line_cnt,
-                                  trans_str, verbose);
+                output_line_error(std::string("Not a tape character ") + c,
+                                  trans_line_cnt, trans_str, verbose);
                 return nullptr;
             }
         }
         for (auto c : real_trans.dir) {
             if (c != '*' && c != 'l' && c != 'r') {
-                output_line_error("Direction must be in [l, r, *]", line_cnt,
-                                  trans_str, verbose);
+                output_line_error("Direction must be in [l, r, *]",
+                                  trans_line_cnt, trans_str, verbose);
                 return nullptr;
             }
         }
@@ -645,8 +650,9 @@ void TuringMachine::outputState(int step, const std::string &state,
     std::cout << "---------------------------------------------\n";
 }
 
-void TuringMachine::run(std::string input, bool verbose, bool &success) {
+std::string TuringMachine::run(std::string input, bool verbose, bool &success) {
     // judge the input is valid or not
+    success = false;
     for (auto i = 0u; i < input.size(); i++) {
         char c = input[i];
         if (input_alphabet.count(c) == 0) {
@@ -663,12 +669,12 @@ void TuringMachine::run(std::string input, bool verbose, bool &success) {
                     std::cerr << ' ';
                 }
                 std::cerr << "^\n";
-                std::cerr << "==================== END ====================";
+                std::cerr << "==================== END ====================\n";
             } else {
                 std::cerr << "illegal input\n";
             }
             success = false;
-            return;
+            return "";
         }
     }
 
@@ -693,6 +699,11 @@ void TuringMachine::run(std::string input, bool verbose, bool &success) {
         if (verbose) {
             outputState(step_cnt, cur_state, cur_index);
         }
+        if (fin_states.count(cur_state) != 0) {
+            success = true;
+            break;
+        }
+
         std::string cur_tape_content;
         for (int i = 0; i < n; i++) {
             cur_tape_content += getChar(i, cur_index[i]);
@@ -714,7 +725,7 @@ void TuringMachine::run(std::string input, bool verbose, bool &success) {
 
     const auto sz = tapes[0].size();
     if (sz == 0) {
-        return;
+        tapes[0].push_back(blank_char);
     }
     auto left_bound = 0u;
     auto right_bound = sz - 1;
@@ -724,7 +735,7 @@ void TuringMachine::run(std::string input, bool verbose, bool &success) {
         }
         left_bound++;
     }
-    while (right_bound >= 0) {
+    while (right_bound > left_bound) {
         if (tapes[0][right_bound] != blank_char) {
             break;
         }
@@ -742,5 +753,6 @@ void TuringMachine::run(std::string input, bool verbose, bool &success) {
         std::cout << ans << "\n";
     }
     clearTapes();
+    return ans;
 }
 }  // namespace Turing

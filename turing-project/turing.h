@@ -102,7 +102,7 @@ class TuringMachine {
     const TransFunc &getTransFunc() const { return trans; }
     char getBlankChar() const { return blank_char; }
 
-    void run(std::string input, bool verbose, bool &success);
+    std::string run(std::string input, bool verbose, bool &success);
 };
 
 std::unique_ptr<TuringMachine> getTuringMachine(
