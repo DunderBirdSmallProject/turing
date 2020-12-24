@@ -1,5 +1,5 @@
-OBJDIR?=./builds/out
-TESTOBJDIR?=./builds/tests
+OBJDIR?=./build/out
+TESTOBJDIR?=./build/tests
 SRCDIR?=./turing-project
 CPPFLAGS?=-I./turing-project
 CXXFLAGS?=-g -Werror -Wall -std=c++11

@@ -17,7 +17,14 @@ std::ifstream openfile(const std::string filename) {
 void test_sample1() {
     std::string error_info;
     std::ifstream file = openfile("tests/sample1.tm");
-    auto machine = getTuringMachine(file, error_info);
+    ASSERT(file.is_open());
+    std::string buff;
+    std::vector<std::string> lines;
+
+    while (std::getline(file, buff)) {
+        lines.push_back(buff);
+    }
+    auto machine = getTuringMachine(lines, false);
     ASSERT(machine != nullptr);
 
     Alphabet input = machine->getInputAlphabet();
